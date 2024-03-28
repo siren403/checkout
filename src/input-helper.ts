@@ -159,5 +159,12 @@ export async function getInputs(): Promise<IGitSourceSettings> {
   result.githubServerUrl = core.getInput('github-server-url')
   core.debug(`GitHub Host URL = ${result.githubServerUrl}`)
 
+  // Excludes
+  const excludes = core.getMultilineInput('excludes')
+  if (excludes.length) {
+    result.excludes = excludes
+    core.debug(`excludes ${result.excludes.length}`)
+  }
+
   return result
 }

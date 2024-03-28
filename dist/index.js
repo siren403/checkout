@@ -811,9 +811,15 @@ class GitCommandManager {
             return !!output.stdout.trim();
         });
     }
-    tryClean() {
+    tryClean(excludes) {
         return __awaiter(this, void 0, void 0, function* () {
-            const output = yield this.execGit(['clean', '-ffdx'], true);
+            const args = ['clean', '-ffdx'];
+            if (excludes.length) {
+                for (const e of excludes) {
+                    args.push('-e', e);
+                }
+            }
+            const output = yield this.execGit(args, true);
             return output.exitCode === 0;
         });
     }
@@ -1013,7 +1019,7 @@ const fs = __importStar(__nccwpck_require__(7147));
 const fsHelper = __importStar(__nccwpck_require__(7219));
 const io = __importStar(__nccwpck_require__(7436));
 const path = __importStar(__nccwpck_require__(1017));
-function prepareExistingDirectory(git, repositoryPath, repositoryUrl, clean, ref) {
+function prepareExistingDirectory(git, repositoryPath, repositoryUrl, clean, ref, excludes) {
     var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
         assert.ok(repositoryPath, 'Expected repositoryPath to be defined');
@@ -1082,7 +1088,7 @@ function prepareExistingDirectory(git, repositoryPath, repositoryUrl, clean, ref
                 // Clean
                 if (clean) {
                     core.startGroup('Cleaning the repository');
-                    if (!(yield git.tryClean())) {
+                    if (!(yield git.tryClean(excludes))) {
                         core.debug(`The clean command failed. This might be caused by: 1) path too long, 2) permission issue, or 3) file in use. For further investigation, manually run 'git clean -ffdx' on the directory '${repositoryPath}'.`);
                         remove = true;
                     }
@@ -1200,7 +1206,7 @@ function getSource(settings) {
             }
             // Prepare existing directory, otherwise recreate
             if (isExisting) {
-                yield gitDirectoryHelper.prepareExistingDirectory(git, settings.repositoryPath, repositoryUrl, settings.clean, settings.ref);
+                yield gitDirectoryHelper.prepareExistingDirectory(git, settings.repositoryPath, repositoryUrl, settings.clean, settings.ref, settings.excludes);
             }
             if (!git) {
                 // Downloading using REST API
@@ -1809,6 +1815,12 @@ function getInputs() {
         // Determine the GitHub URL that the repository is being hosted from
         result.githubServerUrl = core.getInput('github-server-url');
         core.debug(`GitHub Host URL = ${result.githubServerUrl}`);
+        // Excludes
+        const excludes = core.getMultilineInput('excludes');
+        if (excludes.length) {
+            result.excludes = excludes;
+            core.debug(`excludes ${result.excludes.length}`);
+        }
         return result;
     });
 }
